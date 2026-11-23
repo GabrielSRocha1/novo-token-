@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0b1320" />
+  <meta name="description" content="Simulador ilustrativo de valorização do Token de Bilheteria, Pool AMM e Carteira Holder." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Token Clube" />
+  <title>Simulador Token Futebol • Casa da Moeda</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icons/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-180.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png" />
+  <script src="./vendor/jspdf.umd.min.js" defer></script>
+  <style>
+    :root {
+      --bg: #080e1a;
+      --card: #111a2e;
+      --card-border: #1e2d4a;
+      --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.25);
+      --gold: #f59e0b;
+      --blue: #38bdf8;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px;
+      padding-bottom: 48px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #0f172a 0%, #16243d 100%);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      gap: 10px;
+    }
+    header h1 { font-size: 1.05rem; font-weight: 700; color: #fff; }
+    header p { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    #installBtn {
+      display: none;
+      background: var(--accent);
+      color: #04130d;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.78rem;
+      cursor: pointer;
+      box-shadow: 0 0 14px var(--accent-glow);
+    }
+    .share-bar {
+      background: linear-gradient(135deg, #111f38 0%, #0d172a 100%);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+    .share-bar-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .share-bar-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+    .share-bar-sub {
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+    .share-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .btn-share-pdf {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #03150e;
+      border: none;
+      padding: 10px 10px;
+      border-radius: 11px;
+      font-weight: 800;
+      font-size: 0.76rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+      transition: transform 0.12s ease, opacity 0.15s ease;
+    }
+    .btn-wa-pdf {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: #03150e;
+      border: none;
+      padding: 10px 10px;
+      border-radius: 11px;
+      font-weight: 800;
+      font-size: 0.76rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: transform 0.12s ease, opacity 0.15s ease;
+    }
+    .btn-print-pdf {
+      background: #1a2844;
+      color: #f8fafc;
+      border: 1px solid #334873;
+      padding: 10px 10px;
+      border-radius: 11px;
+      font-weight: 700;
+      font-size: 0.76rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: transform 0.12s ease, background 0.15s ease;
+    }
+    .btn-share-pdf:active, .btn-wa-pdf:active, .btn-print-pdf:active { transform: scale(0.98); }
+    .btn-print-pdf:hover { background: #233559; }
+    .share-status {
+      font-size: 0.72rem;
+      color: var(--accent);
+      margin-top: 8px;
+      min-height: 16px;
+      font-weight: 600;
+    }
+    .gross-banner {
+      background: #0b1220;
+      border: 1px solid #1e2d4a;
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 0.78rem;
+    }
+    .gross-banner span { color: var(--muted); }
+    .gross-banner strong { color: #fff; font-size: 0.88rem; }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+    .kpi .label { font-size: 0.70rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    .kpi .val { font-size: 1.25rem; font-weight: 800; margin-top: 4px; color: #fff; }
+    .kpi .sub { font-size: 0.72rem; color: var(--accent); margin-top: 3px; font-weight: 600; line-height: 1.3; }
+    .kpi .sub-muted { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+    .kpi.highlight {
+      border-color: rgba(16, 185, 129, 0.45);
+      background: linear-gradient(180deg, rgba(16,185,129,0.12) 0%, var(--card) 100%);
+    }
+    .kpi.club-kpi {
+      border-color: rgba(56, 189, 248, 0.38);
+      background: linear-gradient(180deg, rgba(56,189,248,0.08) 0%, var(--card) 100%);
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .card.wallet-card {
+      border-color: rgba(245, 158, 11, 0.45);
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, var(--card) 100%);
+    }
+    .card-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      color: #e2e8f0;
+    }
+    canvas { width: 100%; height: 210px; display: block; }
+    .control { margin-bottom: 14px; }
+    .control:last-child { margin-bottom: 0; }
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+      gap: 10px;
+    }
+    .control-header span:last-child { white-space: nowrap; }
+    .control-header span:first-child { color: var(--muted); }
+    .control-header span:last-child { font-weight: 700; color: var(--accent); }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      height: 6px;
+      background: #1e293b;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .pool-presets {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .pool-btn {
+      background: #0b1220;
+      border: 1px solid #263859;
+      color: #cbd5e1;
+      border-radius: 8px;
+      padding: 5px 4px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .pool-btn:hover { border-color: var(--accent); color: #fff; }
+    .pool-btn.active {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .split-box {
+      background: #0b1220;
+      border: 1px solid #1e2d4a;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+    .split-presets {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .split-btn {
+      background: #111a2e;
+      border: 1px solid #263859;
+      color: #cbd5e1;
+      border-radius: 8px;
+      padding: 6px 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .split-btn:hover { border-color: var(--accent); color: #fff; }
+    .split-btn.active {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .split-bar-visual {
+      display: flex;
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 10px;
+      background: #1e293b;
+    }
+    .split-bar-club { background: #38bdf8; transition: width 0.15s ease; }
+    .split-bar-pool { background: #10b981; transition: width 0.15s ease; }
+    .split-legend {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      margin-top: 5px;
+      font-weight: 700;
+    }
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .input-box label {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .input-box input {
+      width: 100%;
+      background: #0b1220;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.73rem;
+      min-width: 580px;
+    }
+    th, td {
+      padding: 8px 6px;
+      text-align: right;
+      border-bottom: 1px solid #1a263e;
+      vertical-align: middle;
+    }
+    th:first-child, td:first-child, th.col-supply, td.col-supply { text-align: left; }
+    th { color: var(--muted); font-weight: 600; font-size: 0.68rem; text-transform: uppercase; }
+    td { color: #e2e8f0; }
+    .supply-badge {
+      display: inline-block;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #7dd3fc;
+      border-radius: 8px;
+      padding: 4px 6px;
+      font-size: 0.67rem;
+      line-height: 1.25;
+      font-weight: 600;
+    }
+    .supply-badge strong { color: #fff; display: block; }
+    .pill {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent);
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .pill-gold {
+      background: rgba(245, 158, 11, 0.18);
+      color: var(--gold);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .btn-reset {
+      background: #1e293b;
+      color: #cbd5e1;
+      border: 1px solid #334155;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 0.72rem;
+      cursor: pointer;
+    }
+    .wallet-compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .wallet-box {
+      background: #0b1220;
+      border: 1px solid #1e2d4a;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .wallet-box.final {
+      border-color: rgba(245, 158, 11, 0.55);
+      background: linear-gradient(180deg, rgba(245,158,11,0.14) 0%, #0b1220 100%);
+    }
+    .wallet-box .w-tag {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.4px;
+    }
+    .wallet-box .w-usd {
+      font-size: 1.35rem;
+      font-weight: 800;
+      margin-top: 4px;
+      color: #fff;
+    }
+    .wallet-box.final .w-usd { color: var(--gold); }
+    .wallet-box .w-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .wallet-profit-bar {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      margin-bottom: 12px;
+    }
+    .wallet-profit-bar strong { color: var(--accent); font-size: 0.92rem; }
+
+    .kpi.pool-kpi { grid-column: 1 / -1; border-color: rgba(16,185,129,0.45); background: linear-gradient(180deg, rgba(16,185,129,0.10) 0%, var(--card) 100%); }
+    .pool-eq { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 6px; margin-top: 8px; }
+    .pool-eq .blk { background: #0b1220; border: 1px solid #1e2d4a; border-radius: 10px; padding: 8px 8px; text-align: center; min-width: 0; }
+    .pool-eq .blk .t { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; line-height: 1.25; }
+    .pool-eq .blk .v { font-size: 0.92rem; font-weight: 800; margin-top: 3px; white-space: nowrap; }
+    .pool-eq .blk.base .v { color: #7dd3fc; }
+    .pool-eq .blk.inj .v { color: var(--accent); }
+    .pool-eq .blk.total { border-color: rgba(16,185,129,0.55); background: rgba(16,185,129,0.10); }
+    .pool-eq .blk.total .v { color: #fff; }
+    .pool-eq .op { font-size: 1.1rem; font-weight: 800; color: var(--muted); }
+    .pool-meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; font-size: 0.7rem; color: var(--muted); margin-top: 8px; }
+    .pool-meta b { color: #e2e8f0; }
+    .pool-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+    .pool-steps div { background: #0b1220; border: 1px solid #1e2d4a; border-radius: 10px; padding: 8px; font-size: 0.68rem; color: var(--muted); line-height: 1.35; }
+    .pool-steps b { display: block; color: #fff; font-size: 0.88rem; margin-top: 2px; }
+    .legend-row { display: flex; gap: 14px; font-size: 0.7rem; font-weight: 700; margin-top: 6px; }
+    .legend-row i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+    .pool-cell .eq { font-size: 0.64rem; color: #94a3b8; line-height: 1.35; }
+    .pool-cell .eq .b { color: #7dd3fc; } .pool-cell .eq .i { color: #10b981; }
+    #poolChart { height: 190px; }
+    .formula-box {
+      background: linear-gradient(180deg, rgba(56,189,248,0.08) 0%, #0b1220 100%);
+      border: 1px solid rgba(56,189,248,0.35);
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    .formula-title { font-size: 0.72rem; color: #7dd3fc; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
+    .formula-eq { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important; font-size: 0.82rem; color: #e2e8f0; line-height: 1.6; word-break: break-word; }
+    .formula-eq * { font-family: inherit !important; }
+    .formula-eq .res { color: var(--accent); font-weight: 800; font-size: 1.05rem; }
+    .formula-eq .dim { color: var(--muted); }
+    .formula-note { font-size: 0.7rem; color: var(--muted); margin-top: 6px; line-height: 1.45; }
+    .ref-table { width: 100%; min-width: 0; margin-top: 8px; font-size: 0.72rem; }
+    .ref-table th, .ref-table td { padding: 5px 4px; }
+    .ref-table tr.active td { color: var(--accent); font-weight: 800; }
+    .disclaimer { font-size: 0.68rem; color: var(--muted); line-height: 1.45; text-align: center; margin-top: 6px; padding: 0 6px; }
+    .ios-hint { display:none; background:#0b1220; border:1px dashed #334873; border-radius:12px; padding:10px 12px; font-size:0.74rem; color:#cbd5e1; margin-bottom:14px; line-height:1.4; }
+    .ios-hint button { float:right; background:none; border:none; color:var(--muted); font-size:0.9rem; cursor:pointer; }
+    .offline-badge { display:none; font-size:0.66rem; font-weight:700; color:var(--gold); border:1px solid rgba(245,158,11,.45); border-radius:999px; padding:2px 8px; }
+    body { padding-top: max(16px, env(safe-area-inset-top)); padding-bottom: max(48px, env(safe-area-inset-bottom)); }
+    input[type="number"] { font-size: 16px !important; }
+    /* ESTILO DE IMPRESSÃO / SALVAR COMO PDF NATIVO DO NAVEGADOR */
+    @media print {
+      body { background: #ffffff; color: #0f172a; padding: 12px; max-width: 100%; }
+      .share-bar, #installBtn, .ios-hint, .offline-badge, .btn-reset, .pool-presets, .split-presets, input[type="range"] { display: none !important; }
+      header, .card, .kpi, .gross-banner, .split-box, .wallet-box, .wallet-profit-bar {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+      }
+      .kpi .val, .card-title, strong, td, th, .w-usd { color: #0f172a !important; }
+      .kpi .label, .kpi .sub, .kpi .sub-muted, .w-tag, .w-sub, .gross-banner span { color: #334155 !important; }
+      .formula-box { background:#f8fafc !important; border:1px solid #cbd5e1 !important; }
+      .formula-eq, .formula-eq .res, .formula-title { color:#0f172a !important; }
+      .pool-eq .blk, .pool-steps div { background:#fff !important; border:1px solid #cbd5e1 !important; }
+      .pool-eq .blk .v, .pool-steps b { color:#0f172a !important; }
+      .supply-badge { background: #f1f5f9 !important; border-color: #94a3b8 !important; color: #0f172a !important; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>⚽ Simulador Token Futebol</h1>
+      <p>Casa da Moeda • Global Pay • Pool AMM</p>
+    </div>
+    <div class="header-actions">
+      <span class="offline-badge" id="offlineBadge">Offline</span>
+      <button id="installBtn">📲 Instalar App</button>
+    </div>
+  </header>
+
+  <div class="ios-hint" id="iosHint">
+    <button type="button" onclick="dismissIosHint()" aria-label="Fechar">✕</button>
+    📲 <strong>Instalar no iPhone:</strong> toque em <strong>Compartilhar</strong> no Safari e depois em <strong>Adicionar à Tela de Início</strong>.
+  </div>
+
+  <!-- BARRA DE COMPARTILHAMENTO PDF / WHATSAPP / IMPRIMIR -->
+  <div class="share-bar">
+    <div class="share-bar-top">
+      <span class="share-bar-title">📄 Proposta & Relatório Executivo em PDF</span>
+      <span class="share-bar-sub">Gera PDF com gráfico, KPIs e cronograma</span>
+    </div>
+    <div class="share-buttons">
+      <button type="button" class="btn-share-pdf" onclick="sharePdfNative()">📤 Compartilhar PDF</button>
+      <button type="button" class="btn-wa-pdf" onclick="shareWhatsAppPdf()">💬 WhatsApp</button>
+      <button type="button" class="btn-print-pdf" onclick="window.print()">🖨️ Imprimir</button>
+    </div>
+    <div class="share-status" id="shareStatus"></div>
+  </div>
+
+  <!-- FAIXA DE ARRECADAÇÃO BRUTA TOTAL DO PERÍODO -->
+  <div class="gross-banner">
+    <span>🎟️ Arrecadação Bruta Total (<strong id="bannerMonths">12m</strong>):</span>
+    <div>
+      <strong id="bannerGrossUsd" style="color:#38bdf8;">—</strong>
+      <span id="bannerGrossBrl"></span>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi highlight">
+      <div class="label">Preço Final Token</div>
+      <div class="val" id="kpiFinalPrice">—</div>
+      <div class="sub" id="kpiMultiplier">—</div>
+    </div>
+    <div class="kpi club-kpi">
+      <div class="label" id="kpiClubLabel">Repasse Clube (80% da Bilheteria)</div>
+      <div class="val" id="kpiClubUsd" style="color:#38bdf8;">—</div>
+      <div class="sub" id="kpiClubBrl" style="color:#7dd3fc;">—</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Tokens nas Carteiras</div>
+      <div class="val" id="kpiHeldPct">—</div>
+      <div class="sub" id="kpiHeldTokens">—</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Market Cap Final</div>
+      <div class="val" id="kpiMarketCap">—</div>
+      <div class="sub" id="kpiMcapSub">—</div>
+    </div>
+    <div class="kpi pool-kpi">
+      <div class="label" id="kpiPoolLabel">Pool Total = Pool Inicial + 20% da Bilheteria</div>
+      <div class="pool-eq">
+        <div class="blk base"><div class="t">Pool Inicial<br />(Dia 0)</div><div class="v" id="kpiPoolBase">—</div></div>
+        <div class="op">+</div>
+        <div class="blk inj"><div class="t" id="kpiPoolInjLabel">20% Bilheteria<br />(12 meses)</div><div class="v" id="kpiPoolInj">—</div></div>
+        <div class="op">=</div>
+        <div class="blk total"><div class="t" id="kpiPoolTotalLabel">Pool Total<br />(Mês 12)</div><div class="v" id="kpiPoolUsd">—</div></div>
+      </div>
+      <div class="pool-meta">
+        <span id="kpiPoolMonthly">—</span>
+        <span id="kpiPoolGrowth">—</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <span>📈 Curva de Valorização (USD)</span>
+      <span class="pill" id="badgeInitial">Inicial: $1.0000</span>
+    </div>
+    <canvas id="priceChart"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <span>💧 Evolução do Pool (USDC)</span>
+      <span class="pill" id="badgePoolPct">+20% da bilheteria/mês</span>
+    </div>
+    <canvas id="poolChart"></canvas>
+    <div class="legend-row">
+      <span style="color:#7dd3fc;"><i style="background:#38bdf8;"></i><span id="legendPoolBase">Pool Inicial</span></span>
+      <span style="color:#10b981;"><i style="background:#10b981;"></i><span id="legendPoolInj">Injeção acumulada (20%)</span></span>
+    </div>
+    <div class="pool-steps">
+      <div>Mês 0 (lançamento)<b id="stepM0">—</b></div>
+      <div id="stepMidLabel">Mês 6<b id="stepMid">—</b></div>
+      <div id="stepEndLabel">Mês 12<b id="stepEnd">—</b></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <span>🎛️ Parâmetros da Operação</span>
+      <button class="btn-reset" onclick="resetDefaults()">Restaurar Padrão</button>
+    </div>
+
+    <div class="split-box">
+      <div class="control-header" style="margin-bottom:8px;">
+        <span style="color:#e2e8f0; font-weight:700;">⚖️ Divisão da Bilheteria (Clube / Pool)</span>
+        <span id="lblSplitRatio" style="color:#38bdf8;">80% Clube / 20% Pool</span>
+      </div>
+      <input type="range" id="clubShare" min="10" max="95" step="5" value="80" />
+      <div class="split-bar-visual">
+        <div class="split-bar-club" id="barClub" style="width:80%;"></div>
+        <div class="split-bar-pool" id="barPool" style="width:20%;"></div>
+      </div>
+      <div class="split-legend">
+        <span style="color:#38bdf8;" id="legendClub">🏟️ Clube: 80%</span>
+        <span style="color:#10b981;" id="legendPool">💧 Pool AMM: 20%</span>
+      </div>
+      <div class="split-presets">
+        <button type="button" class="split-btn" data-club="50" onclick="setClubShare(50)">50 / 50</button>
+        <button type="button" class="split-btn" data-club="60" onclick="setClubShare(60)">60 / 40</button>
+        <button type="button" class="split-btn" data-club="70" onclick="setClubShare(70)">70 / 30</button>
+        <button type="button" class="split-btn active" data-club="80" onclick="setClubShare(80)">80 / 20</button>
+        <button type="button" class="split-btn" data-club="90" onclick="setClubShare(90)">90 / 10</button>
+      </div>
+    </div>
+
+    <div class="control">
+      <div class="control-header">
+        <span>Liquidez Inicial no Pool (USDC) — até $25 Mi</span>
+        <span id="lblInitUsdc">$25,000,000</span>
+      </div>
+      <input type="range" id="initUsdc" min="5000" max="25000000" step="5000" value="25000000" />
+      <div class="pool-presets">
+        <button type="button" class="pool-btn" data-pool="25000" onclick="setInitUsdc(25000)">$25 Mil</button>
+        <button type="button" class="pool-btn" data-pool="250000" onclick="setInitUsdc(250000)">$250 Mil</button>
+        <button type="button" class="pool-btn" data-pool="1000000" onclick="setInitUsdc(1000000)">$1 Mi</button>
+        <button type="button" class="pool-btn" data-pool="5000000" onclick="setInitUsdc(5000000)">$5 Mi</button>
+        <button type="button" class="pool-btn active" data-pool="25000000" onclick="setInitUsdc(25000000)">$25 Mi</button>
+      </div>
+      <div class="input-box" style="margin-top:8px;">
+        <label>Ou digite o valor exato da Liquidez Inicial (USDC):</label>
+        <input type="number" id="initUsdcExact" value="25000000" min="1000" max="25000000" step="1000" />
+      </div>
+
+      <div class="formula-box" id="formulaBox">
+        <div class="formula-title">🧮 Preço Inicial — Matemática Exata do Pool</div>
+        <div class="formula-eq">
+          <span class="dim">Preço inicial = Liquidez USDC ÷ Supply</span><br />
+          <span id="fxInitEq">$25,000,000 ÷ 25.000.000 tokens</span><br />
+          = <span class="res" id="fxInitRes">$1.0000</span> <span class="dim">por token</span><br />
+          <span class="dim" id="fxInitCents">= 100 centavos de dólar</span>
+        </div>
+        <div class="formula-eq" style="margin-top:8px;">
+          <span class="dim">Constante do pool k = USDC × Tokens</span><br />
+          <span id="fxK">k = 25.000.000 × 25.000.000</span><br />
+          <span class="dim">Preço no mês m = (Base + Injeção)² ÷ k</span>
+        </div>
+        <table class="ref-table">
+          <thead><tr><th>Liquidez Inicial</th><th>÷ Supply</th><th>Preço Inicial</th></tr></thead>
+          <tbody id="refTableBody"></tbody>
+        </table>
+        <div class="formula-note">Todos os 25.000.000 tokens começam no pool. O preço de partida é sempre a divisão exata do USDC depositado pelos tokens, e cada injeção de bilheteria recalcula o preço pela constante k.</div>
+      </div>
+    </div>
+
+    <div class="control">
+      <div class="control-header">
+        <span>Torcedores por Jogo</span>
+        <span id="lblFans">50.000 torcedores</span>
+      </div>
+      <input type="range" id="fansPerGame" min="200" max="50000" step="100" value="50000" />
+    </div>
+
+    <div class="control">
+      <div class="control-header">
+        <span>Jogos no Mês</span>
+        <span id="lblGames">4 jogos/mês</span>
+      </div>
+      <input type="range" id="gamesPerMonth" min="1" max="8" step="1" value="4" />
+    </div>
+
+    <div class="control">
+      <div class="control-header">
+        <span>Horizonte da Projeção</span>
+        <span id="lblMonths">12 meses</span>
+      </div>
+      <input type="range" id="months" min="3" max="24" step="1" value="12" />
+    </div>
+
+    <div class="row-2">
+      <div class="input-box">
+        <label>Ingresso / Compra (R$)</label>
+        <input type="number" id="ticketBrl" value="100" min="10" step="10" />
+      </div>
+      <div class="input-box">
+        <label>Cotação Dólar (R$/USD)</label>
+        <input type="number" id="usdBrl" value="5.95" min="1" step="0.05" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <span>📊 Cronograma Mês a Mês</span>
+      <span style="font-size:0.72rem; color:#7dd3fc; font-weight:700;">🔒 25M Cunhados • Mint & Freeze Revogados</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Mês</th>
+            <th class="col-supply">Cunhagem / Freeze</th>
+            <th>Preço USD</th>
+            <th>Pool Total = Inicial + Injeção</th>
+            <th>Repasse Clube (USDC / R$)</th>
+            <th>Carteira 1M</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card wallet-card">
+    <div class="card-title">
+      <span>💼 Simulador de Carteira (Holder)</span>
+      <span class="pill-gold" id="walletBadgeTokens">1.000.000 Tokens</span>
+    </div>
+
+    <div class="control">
+      <div class="control-header">
+        <span>Quantidade de Tokens na Carteira</span>
+        <span style="color:var(--gold)" id="lblWalletTokens">1.000.000 tokens</span>
+      </div>
+      <input type="range" id="walletTokens" min="100000" max="5000000" step="100000" value="1000000" style="accent-color:var(--gold);" />
+    </div>
+
+    <div class="wallet-compare">
+      <div class="wallet-box">
+        <div class="w-tag">Dia 0 (Lançamento)</div>
+        <div class="w-usd" id="walletDay0Usd">—</div>
+        <div class="w-sub" id="walletDay0Sub">—</div>
+      </div>
+      <div class="wallet-box final">
+        <div class="w-tag" id="walletFinalLabel">Final (Mês 12)</div>
+        <div class="w-usd" id="walletFinalUsd">—</div>
+        <div class="w-sub" id="walletFinalSub">—</div>
+      </div>
+    </div>
+
+    <div class="wallet-profit-bar">
+      <span>Lucro Líquido da Carteira no Período:</span>
+      <strong id="walletProfitUsd">—</strong>
+    </div>
+
+    <div style="font-size:0.73rem; color:var(--muted); line-height:1.45;">
+      Cálculo exato: <strong style="color:#e2e8f0">Quantidade de Tokens × Preço Unitário do Token (USD)</strong> em cada mês da operação.
+    </div>
+  </div>
+
+  <p class="disclaimer">⚠️ Simulação ilustrativa baseada nos parâmetros informados. Não constitui oferta, recomendação de investimento nem promessa de rentabilidade. O preço real depende de compras e vendas efetivas no pool.</p>
+
+  <script>
+    const SUPPLY = 25000000;
+    let lastSimState = null;
+
+    const els = {
+      clubShare: document.getElementById('clubShare'),
+      fans: document.getElementById('fansPerGame'),
+      games: document.getElementById('gamesPerMonth'),
+      usdc: document.getElementById('initUsdc'),
+      usdcExact: document.getElementById('initUsdcExact'),
+      months: document.getElementById('months'),
+      ticket: document.getElementById('ticketBrl'),
+      fx: document.getElementById('usdBrl'),
+      wallet: document.getElementById('walletTokens')
+    };
+
+    function fmtUsd(v, d = 2) {
+      return '$' + v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+    }
+    function fmtCompactUsd(v) {
+      if (v >= 1e6) return '$' + (v / 1e6).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' Mi';
+      if (v >= 1000) return fmtUsd(v, 0);
+      return fmtUsd(v, 2);
+    }
+    // Preço com casas decimais exatas: mínimo 4, e para preços < $1 garante 4 dígitos significativos (até 8 casas)
+    function priceDecimals(v) {
+      if (!isFinite(v) || v <= 0 || v >= 1) return 4;
+      const zeros = Math.ceil(-Math.log10(v) - 1e-12) - 1; // zeros logo após a vírgula
+      let d = Math.min(8, Math.max(4, zeros + 4));            // 4 dígitos significativos
+      while (d > 4 && Math.round(v * 10 ** d) % 10 === 0) d--; // remove zeros à direita
+      return d;
+    }
+    function fmtPrice(v) { return fmtUsd(v, priceDecimals(v)); }
+    function fmtInt(v) { return Math.round(v).toLocaleString('pt-BR'); }
+    function fmtBrl(v) {
+      if (v >= 1e6) return 'R$ ' + (v / 1e6).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' Mi';
+      return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function setClubShare(pct) {
+      els.clubShare.value = pct;
+      calculate();
+    }
+
+    function setInitUsdc(val) {
+      const clamped = Math.min(25000000, Math.max(1000, val));
+      els.usdc.value = clamped;
+      els.usdcExact.value = clamped;
+      calculate();
+    }
+
+    function resetDefaults() {
+      els.clubShare.value = 80;
+      els.fans.value = 50000;
+      els.games.value = 4;
+      els.usdc.value = 25000000;
+      els.usdcExact.value = 25000000;
+      els.months.value = 12;
+      els.ticket.value = 100;
+      els.fx.value = 5.95;
+      els.wallet.value = 1000000;
+      calculate();
+    }
+
+    els.usdc.addEventListener('input', () => {
+      els.usdcExact.value = els.usdc.value;
+      calculate();
+    });
+
+    els.usdcExact.addEventListener('input', () => {
+      let val = parseFloat(els.usdcExact.value);
+      if (isNaN(val) || val < 1000) return;
+      if (val > 25000000) {
+        val = 25000000;
+        els.usdcExact.value = 25000000;
+      }
+      els.usdc.value = val;
+      calculate();
+    });
+
+    function calculate() {
+      const clubPct = parseFloat(els.clubShare.value) || 80;
+      const poolPct = 100 - clubPct;
+      const clubRatio = clubPct / 100;
+      const poolRatio = poolPct / 100;
+
+      const fans = parseFloat(els.fans.value) || 0;
+      const games = parseFloat(els.games.value) || 0;
+      let initUsdc = parseFloat(els.usdcExact.value);
+      if (isNaN(initUsdc) || initUsdc < 1000) initUsdc = parseFloat(els.usdc.value) || 25000000;
+      if (initUsdc > 25000000) initUsdc = 25000000;
+
+      const months = parseInt(els.months.value) || 12;
+      const ticketBrl = parseFloat(els.ticket.value) || 100;
+      const fx = parseFloat(els.fx.value) || 5.95;
+      const walletQty = parseFloat(els.wallet.value) || 1000000;
+
+      document.getElementById('lblSplitRatio').textContent = `${clubPct}% Clube / ${poolPct}% Pool`;
+      document.getElementById('barClub').style.width = `${clubPct}%`;
+      document.getElementById('barPool').style.width = `${poolPct}%`;
+      document.getElementById('legendClub').textContent = `🏟️ Clube: ${clubPct}%`;
+      document.getElementById('legendPool').textContent = `💧 Pool AMM: ${poolPct}%`;
+      document.getElementById('kpiClubLabel').textContent = `Repasse Clube (${clubPct}% Bilheteria)`;
+      document.getElementById('kpiPoolLabel').textContent = `Pool Total = Pool Inicial + ${poolPct}% da Bilheteria`;
+
+      document.querySelectorAll('.split-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.club) === clubPct);
+      });
+
+      document.querySelectorAll('.pool-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.pool) === initUsdc);
+      });
+
+      document.getElementById('lblFans').textContent = fans.toLocaleString('pt-BR') + ' torcedores';
+      document.getElementById('lblGames').textContent = games + (games === 1 ? ' jogo/mês' : ' jogos/mês');
+      document.getElementById('lblInitUsdc').textContent = fmtUsd(initUsdc, 0);
+      document.getElementById('lblMonths').textContent = months + ' meses';
+      document.getElementById('lblWalletTokens').textContent = walletQty.toLocaleString('pt-BR') + ' tokens';
+      document.getElementById('walletBadgeTokens').textContent = (walletQty / 1e6).toLocaleString('pt-BR', {maximumFractionDigits: 2}) + ' Mi Tokens';
+
+      const initPrice = initUsdc / SUPPLY;
+      document.getElementById('badgeInitial').textContent = 'Inicial: ' + fmtPrice(initPrice);
+      document.getElementById('fxInitEq').textContent = `${fmtUsd(initUsdc, 0)} ÷ ${fmtInt(SUPPLY)} tokens`;
+      document.getElementById('fxInitRes').textContent = fmtPrice(initPrice);
+      const cents = initPrice * 100;
+      document.getElementById('fxInitCents').textContent = `= ${cents.toLocaleString('pt-BR', { maximumFractionDigits: 6 })} ${cents < 2 ? 'centavo' : 'centavos'} de dólar`;
+      document.getElementById('fxK').textContent = `k = ${fmtInt(initUsdc)} × ${fmtInt(SUPPLY)}`;
+      const refPools = [25000, 250000, 1000000, 5000000, 25000000];
+      if (!refPools.includes(initUsdc)) refPools.push(initUsdc);
+      refPools.sort((a, b) => a - b);
+      document.getElementById('refTableBody').innerHTML = refPools.map(v =>
+        `<tr class="${v === initUsdc ? 'active' : ''}"><td>${fmtUsd(v, 0)}</td><td>25.000.000</td><td>${fmtPrice(v / SUPPLY)}</td></tr>`
+      ).join('');
+
+      const monthlyTickets = fans * games;
+      const monthlyGrossBrl = monthlyTickets * ticketBrl;
+      const monthlyGrossUsd = monthlyGrossBrl / fx;
+
+      const totalGrossBrl = monthlyGrossBrl * months;
+      const totalGrossUsd = monthlyGrossUsd * months;
+
+      const monthlyNetPoolUsd = monthlyGrossUsd * poolRatio;
+      const monthlyClubBrl = monthlyGrossBrl * clubRatio;
+      const monthlyClubUsd = monthlyGrossUsd * clubRatio;
+
+      document.getElementById('bannerMonths').textContent = `${months}m`;
+      document.getElementById('bannerGrossUsd').textContent = `${fmtCompactUsd(totalGrossUsd)} USDC`;
+      document.getElementById('bannerGrossBrl').textContent = ` (${fmtBrl(totalGrossBrl)})`;
+
+      const k = SUPPLY * initUsdc;
+      const points = [];
+      let tbodyHtml = '';
+
+      for (let m = 0; m <= months; m++) {
+        const injectedUsd = monthlyNetPoolUsd * m;
+        const poolUsd = initUsdc + injectedUsd;
+        const tokensInPool = k / poolUsd;
+        const price = poolUsd / tokensInPool;
+        const mcap = price * SUPPLY;
+        const cumClubBrl = monthlyClubBrl * m;
+        const cumClubUsd = monthlyClubUsd * m;
+        const walletUsd = price * walletQty;
+
+        points.push({ m, price, poolUsd, injectedUsd, tokensInPool, mcap, cumClubUsd, cumClubBrl, walletUsd });
+
+        if (m > 0) {
+          tbodyHtml += `<tr>
+            <td>Mês ${m}</td>
+            <td class="col-supply">
+              <span class="supply-badge">
+                <strong>25M Cunhados</strong>
+                Mint/Freeze revogados • Sem nova cunhagem
+              </span>
+            </td>
+            <td style="color:#10b981;font-weight:700">${fmtPrice(price)}</td>
+            <td class="pool-cell">
+              <strong>${fmtCompactUsd(poolUsd)}</strong>
+              <div class="eq"><span class="b">Inicial ${fmtCompactUsd(initUsdc)}</span> + <span class="i">${fmtCompactUsd(injectedUsd)}</span></div>
+              <div class="eq">(+${fmtCompactUsd(monthlyNetPoolUsd)} no mês • ${poolPct}%)</div>
+            </td>
+            <td>
+              <strong style="color:#38bdf8;">${fmtCompactUsd(cumClubUsd)} USDC</strong>
+              <div style="font-size:0.65rem;color:#94a3b8;">${fmtBrl(cumClubBrl)}</div>
+            </td>
+            <td style="color:#f59e0b;font-weight:700">${fmtCompactUsd(walletUsd)}</td>
+          </tr>`;
+        }
+      }
+
+      const last = points[points.length - 1];
+      const totalInjectedPoolUsd = monthlyNetPoolUsd * months;
+      const totalClubUsd = monthlyClubUsd * months;
+      const totalClubBrl = monthlyClubBrl * months;
+
+      const mult = last.price / initPrice;
+      const pct = (mult - 1) * 100;
+      const heldTokens = SUPPLY - last.tokensInPool;
+      const heldPct = (heldTokens / SUPPLY) * 100;
+
+      document.getElementById('kpiFinalPrice').textContent = fmtPrice(last.price);
+      document.getElementById('kpiMultiplier').textContent = `+${pct.toLocaleString('pt-BR', {maximumFractionDigits:1})}% (${mult.toFixed(2)}x)`;
+      document.getElementById('kpiClubUsd').textContent = fmtCompactUsd(totalClubUsd) + ' USDC';
+      document.getElementById('kpiClubBrl').textContent = fmtBrl(totalClubBrl);
+      document.getElementById('kpiPoolBase').textContent = fmtCompactUsd(initUsdc);
+      document.getElementById('kpiPoolInj').textContent = fmtCompactUsd(totalInjectedPoolUsd);
+      document.getElementById('kpiPoolUsd').textContent = fmtCompactUsd(last.poolUsd);
+      document.getElementById('kpiPoolInjLabel').innerHTML = `${poolPct}% Bilheteria<br />(${months} meses)`;
+      document.getElementById('kpiPoolTotalLabel').innerHTML = `Pool Total<br />(Mês ${months})`;
+      document.getElementById('kpiPoolMonthly').innerHTML = `Injeção/mês: <b>${fmtCompactUsd(monthlyNetPoolUsd)}</b>`;
+      document.getElementById('kpiPoolGrowth').innerHTML = `Crescimento do pool: <b>${(last.poolUsd / initUsdc).toLocaleString('pt-BR', {maximumFractionDigits: 2})}x</b>`;
+      document.getElementById('badgePoolPct').textContent = `+${poolPct}% da bilheteria/mês`;
+      document.getElementById('legendPoolBase').textContent = `Pool Inicial ${fmtCompactUsd(initUsdc)}`;
+      document.getElementById('legendPoolInj').textContent = `Injeção acumulada (${poolPct}%)`;
+      const midM = Math.round(months / 2);
+      const stepTxt = (pt) => `${fmtCompactUsd(pt.poolUsd)}`;
+      document.getElementById('stepM0').textContent = stepTxt(points[0]);
+      document.getElementById('stepMidLabel').firstChild.textContent = `Mês ${midM}`;
+      document.getElementById('stepMid').textContent = stepTxt(points[midM]);
+      document.getElementById('stepEndLabel').firstChild.textContent = `Mês ${months}`;
+      document.getElementById('stepEnd').textContent = stepTxt(last);
+      document.getElementById('kpiMarketCap').textContent = fmtCompactUsd(last.mcap);
+      document.getElementById('kpiMcapSub').textContent = `${fmtPrice(last.price)} × 25M tokens`;
+      document.getElementById('kpiHeldPct').textContent = heldPct.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) + '%';
+      document.getElementById('kpiHeldTokens').textContent = (heldTokens / 1e6).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + 'M / 25M';
+
+      const day0WalletUsd = initPrice * walletQty;
+      const finalWalletUsd = last.price * walletQty;
+      const profitWalletUsd = finalWalletUsd - day0WalletUsd;
+      const shortQty = (walletQty / 1e6).toLocaleString('pt-BR', {maximumFractionDigits: 2}) + 'M';
+
+      document.getElementById('walletFinalLabel').textContent = `Final (Mês ${months})`;
+      document.getElementById('walletDay0Usd').textContent = fmtUsd(day0WalletUsd, 2);
+      document.getElementById('walletDay0Sub').textContent = `${shortQty} × ${fmtPrice(initPrice)} • ${fmtBrl(day0WalletUsd * fx)}`;
+      document.getElementById('walletFinalUsd').textContent = fmtUsd(finalWalletUsd, 2);
+      document.getElementById('walletFinalSub').textContent = `${shortQty} × ${fmtPrice(last.price)} • ${fmtBrl(finalWalletUsd * fx)}`;
+      document.getElementById('walletProfitUsd').textContent = `+${fmtUsd(profitWalletUsd, 2)} USD`;
+
+      document.getElementById('tableBody').innerHTML = tbodyHtml;
+      drawChart(points);
+      drawPoolChart(points, initUsdc);
+
+      lastSimState = {
+        clubPct, poolPct, fans, games, months, ticketBrl, fx,
+        initUsdc, initPrice, finalPrice: last.price, mult, pct,
+        monthlyNetPoolUsd, monthlyGrossUsd,
+        totalGrossUsd, totalGrossBrl, totalClubUsd, totalClubBrl,
+        finalPoolUsd: last.poolUsd, totalInjectedPoolUsd,
+        marketCap: last.mcap, heldPct, heldTokens,
+        walletQty, day0WalletUsd, finalWalletUsd, profitWalletUsd,
+        points
+      };
+    }
+
+    function drawChart(points) {
+      const canvas = document.getElementById('priceChart');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = 210 * dpr;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      const W = rect.width;
+      const H = 210;
+      const padL = 70, padR = 14, padT = 16, padB = 26;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+
+      ctx.clearRect(0, 0, W, H);
+
+      const maxP = Math.max(...points.map(p => p.price)) * 1.08;
+      const minP = 0;
+
+      ctx.strokeStyle = '#1e2d4a';
+      ctx.lineWidth = 1;
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+
+      for (let i = 0; i <= 4; i++) {
+        const y = padT + (plotH * i / 4);
+        const val = maxP - (maxP - minP) * (i / 4);
+        ctx.beginPath();
+        ctx.moveTo(padL, y);
+        ctx.lineTo(W - padR, y);
+        ctx.stroke();
+        ctx.fillText(fmtPrice(val), padL - 6, y + 3);
+      }
+
+      ctx.textAlign = 'center';
+      const step = Math.ceil(points.length / 6);
+      points.forEach((p, idx) => {
+        if (idx % step === 0 || idx === points.length - 1) {
+          const x = padL + (plotW * idx / (points.length - 1));
+          ctx.fillText('M' + p.m, x, H - 8);
+        }
+      });
+
+      const grad = ctx.createLinearGradient(0, padT, 0, H - padB);
+      grad.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+      grad.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+      ctx.beginPath();
+      points.forEach((p, idx) => {
+        const x = padL + (plotW * idx / (points.length - 1));
+        const y = padT + plotH - ((p.price - minP) / (maxP - minP)) * plotH;
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.lineTo(padL + plotW, padT + plotH);
+      ctx.lineTo(padL, padT + plotH);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.beginPath();
+      points.forEach((p, idx) => {
+        const x = padL + (plotW * idx / (points.length - 1));
+        const y = padT + plotH - ((p.price - minP) / (maxP - minP)) * plotH;
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      points.forEach((p, idx) => {
+        const x = padL + (plotW * idx / (points.length - 1));
+        const y = padT + plotH - ((p.price - minP) / (maxP - minP)) * plotH;
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#10b981';
+        ctx.fill();
+      });
+    }
+
+    function drawPoolChart(points, base) {
+      const canvas = document.getElementById('poolChart');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      const H = 190;
+      canvas.width = rect.width * dpr;
+      canvas.height = H * dpr;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      const W = rect.width;
+      const padL = 70, padR = 14, padT = 14, padB = 26;
+      const plotW = W - padL - padR, plotH = H - padT - padB;
+      ctx.clearRect(0, 0, W, H);
+      const maxV = Math.max(...points.map(p => p.poolUsd)) * 1.08;
+      ctx.strokeStyle = '#1e2d4a'; ctx.lineWidth = 1; ctx.fillStyle = '#94a3b8'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+      for (let i = 0; i <= 4; i++) {
+        const y = padT + plotH * i / 4;
+        ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+        ctx.fillText(fmtCompactUsd(maxV * (1 - i / 4)), padL - 6, y + 3);
+      }
+      const n = points.length;
+      const slot = plotW / n;
+      const bw = Math.max(3, Math.min(26, slot * 0.68));
+      const yOf = v => padT + plotH - (v / maxV) * plotH;
+      ctx.textAlign = 'center';
+      const step = Math.ceil(n / 7);
+      points.forEach((p, idx) => {
+        const cx = padL + slot * idx + slot / 2;
+        const x = cx - bw / 2;
+        const yBase = yOf(base);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(x, yBase, bw, padT + plotH - yBase);
+        if (p.injectedUsd > 0) {
+          const yTop = yOf(p.poolUsd);
+          ctx.fillStyle = '#10b981';
+          ctx.fillRect(x, yTop, bw, yBase - yTop);
+        }
+        if (idx % step === 0 || idx === n - 1) { ctx.fillStyle = '#94a3b8'; ctx.fillText('M' + p.m, cx, H - 8); }
+      });
+      // linha do pool inicial
+      ctx.setLineDash([4, 4]); ctx.strokeStyle = '#7dd3fc';
+      ctx.beginPath(); ctx.moveTo(padL, yOf(base)); ctx.lineTo(W - padR, yOf(base)); ctx.stroke(); ctx.setLineDash([]);
+    }
+
+    function buildPdfDocument() {
+      const s = lastSimState;
+      if (!window.jspdf) throw new Error('jsPDF indisponível');
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const margin = 36;
+      const nowStr = new Date().toLocaleString('pt-BR');
+
+      // Cabeçalho executivo escuro
+      doc.setFillColor(11, 19, 32);
+      doc.rect(0, 0, pageW, 88, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('SIMULADOR TOKEN FUTEBOL - RELATORIO EXECUTIVO', margin, 34);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Casa da Moeda  |  Global Pay  |  Pool AMM (Supply Fixo 25M - Mint & Freeze Revogados)', margin, 54);
+      doc.setFontSize(8.5);
+      doc.text(`Gerado em: ${nowStr}   |   Horizonte: ${s.months} meses   |   Divisao: ${s.clubPct}% Clube / ${s.poolPct}% Pool`, margin, 72);
+
+      let y = 108;
+
+      // Bloco de Premissas da Operação
+      doc.setFillColor(241, 245, 249);
+      doc.roundedRect(margin, y, pageW - margin * 2, 54, 6, 6, 'F');
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.text('PARAMETROS DA OPERACAO', margin + 12, y + 16);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(`Preco Inicial = ${fmtUsd(s.initUsdc, 0)} USDC / ${fmtInt(SUPPLY)} tokens = ${fmtPrice(s.initPrice)} por token   |   k = ${fmtInt(s.initUsdc)} x ${fmtInt(SUPPLY)}`, margin + 12, y + 32);
+      doc.text(`Publico: ${s.fans.toLocaleString('pt-BR')} torcedores/jogo  x  ${s.games} jogos/mes  |  Ingresso: R$ ${s.ticketBrl.toFixed(2)}  |  Cambio: R$ ${s.fx.toFixed(2)}`, margin + 12, y + 46);
+
+      y += 68;
+
+      // Cards de Resultados Principais (2x2)
+      const boxW = (pageW - margin * 2 - 12) / 2;
+      const boxH = 56;
+      const kpis = [
+        {
+          title: 'PRECO FINAL DO TOKEN',
+          val: `${fmtPrice(s.finalPrice)} (+${s.pct.toLocaleString('pt-BR', {maximumFractionDigits:1})}%)`,
+          sub: `Multiplicador: ${s.mult.toFixed(2)}x  |  Market Cap: ${fmtCompactUsd(s.marketCap)}`
+        },
+        {
+          title: `REPASSE CLUBE (${s.clubPct}% BILHETERIA)`,
+          val: `${fmtCompactUsd(s.totalClubUsd)} USDC`,
+          sub: `Equivalente: ${fmtBrl(s.totalClubBrl)} (Bruta Total: ${fmtCompactUsd(s.totalGrossUsd)})`
+        },
+        {
+          title: `POOL TOTAL = INICIAL + ${s.poolPct}% BILHETERIA`,
+          val: `${fmtCompactUsd(s.finalPoolUsd)} USDC`,
+          sub: `Inicial ${fmtCompactUsd(s.initUsdc)} + ${s.poolPct}% (${s.months}m) ${fmtCompactUsd(s.totalInjectedPoolUsd)}  |  +${fmtCompactUsd(s.monthlyNetPoolUsd)}/mes`
+        },
+        {
+          title: 'CARTEIRA HOLDER SIMULADA',
+          val: `${fmtUsd(s.finalWalletUsd, 2)}`,
+          sub: `${(s.walletQty/1e6).toLocaleString('pt-BR', {maximumFractionDigits:2})}M tokens (Lucro: +${fmtUsd(s.profitWalletUsd, 2)})`
+        }
+      ];
+
+      kpis.forEach((k, idx) => {
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        const bx = margin + col * (boxW + 12);
+        const by = y + row * (boxH + 10);
+        doc.setDrawColor(203, 213, 225);
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(bx, by, boxW, boxH, 6, 6, 'FD');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(71, 85, 105);
+        doc.text(k.title, bx + 10, by + 15);
+        doc.setFontSize(11.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(k.val, bx + 10, by + 32);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(51, 65, 85);
+        doc.text(k.sub, bx + 10, by + 46);
+      });
+
+      y += boxH * 2 + 24;
+
+      // Captura o gráfico do canvas para embutir no PDF
+      const chartCanvas = document.getElementById('priceChart');
+      if (chartCanvas) {
+        const imgData = chartCanvas.toDataURL('image/png', 1.0);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(15, 23, 42);
+        doc.text('CURVA DE VALORIZACAO DO TOKEN (USD)', margin, y);
+        y += 8;
+        doc.setDrawColor(203, 213, 225);
+        doc.roundedRect(margin, y, pageW - margin * 2, 132, 6, 6, 'S');
+        doc.addImage(imgData, 'PNG', margin + 6, y + 6, pageW - margin * 2 - 12, 120);
+        y += 148;
+      }
+
+      const poolCanvas = document.getElementById('poolChart');
+      if (poolCanvas) {
+        doc.addPage();
+        y = 44;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`EVOLUCAO DO POOL: INICIAL ${fmtCompactUsd(s.initUsdc)} + ${s.poolPct}% DA BILHETERIA`, margin, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(51, 65, 85);
+        doc.text(`Mes 0: ${fmtCompactUsd(s.initUsdc)}  ->  +${fmtCompactUsd(s.monthlyNetPoolUsd)} por mes  ->  Mes ${s.months}: ${fmtCompactUsd(s.finalPoolUsd)} (${(s.finalPoolUsd / s.initUsdc).toFixed(2)}x)`, margin, y + 14);
+        y += 22;
+        doc.setDrawColor(203, 213, 225);
+        doc.setFillColor(11, 19, 32);
+        doc.roundedRect(margin, y, pageW - margin * 2, 132, 6, 6, 'FD');
+        doc.addImage(poolCanvas.toDataURL('image/png', 1.0), 'PNG', margin + 6, y + 6, pageW - margin * 2 - 12, 120);
+        y += 152;
+      }
+
+      // Tabela Mês a Mês
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      doc.text('CRONOGRAMA MES A MES (SUPPLY FIXO 25M - MINT/FREEZE REVOGADOS)', margin, y);
+      y += 12;
+
+      const cols = [
+        { label: 'Mes', w: 40 },
+        { label: 'Preco USD', w: 62 },
+        { label: 'Pool = Inicial + Injecao', w: 168 },
+        { label: 'Repasse Clube', w: 148 },
+        { label: `Carteira ${(s.walletQty/1e6).toLocaleString('pt-BR', {maximumFractionDigits:2})}M`, w: pageW - margin * 2 - 418 }
+      ];
+
+      doc.setFillColor(15, 23, 42);
+      doc.rect(margin, y, pageW - margin * 2, 20, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      let cx = margin + 6;
+      cols.forEach(c => {
+        doc.text(c.label, cx, y + 13);
+        cx += c.w;
+      });
+      y += 20;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+
+      s.points.slice(1).forEach((pt, i) => {
+        if (y > doc.internal.pageSize.getHeight() - 45) {
+          doc.addPage();
+          y = 40;
+        }
+        if (i % 2 === 0) {
+          doc.setFillColor(248, 250, 252);
+          doc.rect(margin, y, pageW - margin * 2, 17, 'F');
+        }
+        doc.setTextColor(15, 23, 42);
+        cx = margin + 6;
+        const rowVals = [
+          `Mes ${pt.m}`,
+          fmtPrice(pt.price),
+          `${fmtCompactUsd(pt.poolUsd)} = ${fmtCompactUsd(s.initUsdc)} + ${fmtCompactUsd(pt.injectedUsd)}`,
+          `${fmtCompactUsd(pt.cumClubUsd)} (${fmtBrl(pt.cumClubBrl)})`,
+          fmtCompactUsd(pt.walletUsd)
+        ];
+        rowVals.forEach((rv, idx) => {
+          doc.text(String(rv), cx, y + 11.5);
+          cx += cols[idx].w;
+        });
+        y += 17;
+      });
+
+      if (y > doc.internal.pageSize.getHeight() - 50) { doc.addPage(); y = 40; }
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(7.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(doc.splitTextToSize('Simulacao ilustrativa baseada nos parametros informados. Nao constitui oferta, recomendacao de investimento nem promessa de rentabilidade.', pageW - margin * 2), margin, y + 18);
+
+      const fileName = `relatorio-token-clube-${s.clubPct}-${s.poolPct}-${s.months}m.pdf`;
+      return { doc, fileName };
+    }
+
+    function buildWhatsAppSummary() {
+      const s = lastSimState;
+      return [
+        `*⚽ Simulador Token Futebol • Casa da Moeda*`,
+        `📊 *Cenário (${s.months} meses | ${s.clubPct}% Clube / ${s.poolPct}% Pool)*`,
+        `• Liquidez Inicial Pool: *${fmtUsd(s.initUsdc, 0)} USDC*`,
+        `• Preço Inicial: ${fmtUsd(s.initUsdc, 0)} ÷ 25.000.000 = *${fmtPrice(s.initPrice)}*`,
+        `• Preço Final Token: *${fmtPrice(s.finalPrice)}* (+${s.pct.toLocaleString('pt-BR', {maximumFractionDigits:1})}%)`,
+        `• Repasse Clube (${s.clubPct}%): *${fmtCompactUsd(s.totalClubUsd)} USDC* (${fmtBrl(s.totalClubBrl)})`,
+        `• Pool: Inicial ${fmtCompactUsd(s.initUsdc)} + ${s.poolPct}% bilheteria ${fmtCompactUsd(s.totalInjectedPoolUsd)} = *${fmtCompactUsd(s.finalPoolUsd)} USDC*`,
+        `• Carteira ${(s.walletQty/1e6).toLocaleString('pt-BR', {maximumFractionDigits:2})}M: *${fmtUsd(s.finalWalletUsd, 2)}* (Lucro +${fmtUsd(s.profitWalletUsd, 2)})`,
+        `🔒 Supply fixo 25M (Mint & Freeze revogados)`
+      ].join('\n');
+    }
+
+    async function sharePdfNative() {
+      const statusEl = document.getElementById('shareStatus');
+      try {
+        statusEl.textContent = 'Gerando PDF executivo...';
+        const { doc, fileName } = buildPdfDocument();
+        const pdfBlob = doc.output('blob');
+        const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+          await navigator.share({
+            title: 'Relatório Simulador Token Futebol',
+            text: buildWhatsAppSummary(),
+            files: [pdfFile]
+          });
+          statusEl.textContent = 'PDF compartilhado com sucesso!';
+        } else {
+          doc.save(fileName);
+          statusEl.textContent = `PDF "${fileName}" baixado! Anexe no WhatsApp ou envie ao cliente.`;
+        }
+      } catch (err) {
+        if (err && err.name === 'AbortError') {
+          statusEl.textContent = 'Compartilhamento cancelado.';
+        } else {
+          const { doc, fileName } = buildPdfDocument();
+          doc.save(fileName);
+          statusEl.textContent = `PDF "${fileName}" salvo no dispositivo.`;
+        }
+      }
+    }
+
+    async function shareWhatsAppPdf() {
+      const statusEl = document.getElementById('shareStatus');
+      try {
+        statusEl.textContent = 'Preparando PDF e resumo para WhatsApp...';
+        const { doc, fileName } = buildPdfDocument();
+        const pdfBlob = doc.output('blob');
+        const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        const summaryText = buildWhatsAppSummary();
+
+        // Em celulares modernos com Web Share de arquivos, abre o menu nativo já com o PDF pronto para o WhatsApp
+        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+          await navigator.share({
+            title: 'Relatório Simulador Token Futebol',
+            text: summaryText,
+            files: [pdfFile]
+          });
+          statusEl.textContent = 'Pronto! Selecione o WhatsApp para enviar o PDF.';
+          return;
+        }
+
+        // Em desktop ou navegadores sem suporte a anexo direto: baixa o PDF e abre o WhatsApp com o resumo
+        doc.save(fileName);
+        const waUrl = 'https://wa.me/?text=' + encodeURIComponent(summaryText + '\n\n_(PDF executivo gerado e baixado — anexe o arquivo na conversa)_');
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
+        statusEl.textContent = `PDF "${fileName}" baixado e WhatsApp aberto com o resumo!`;
+      } catch (err) {
+        statusEl.textContent = 'Não foi possível abrir o compartilhamento automático.';
+      }
+    }
+
+    const STORE_KEY = 'tokenFutebol.params.v1';
+    const persistKeys = ['clubShare','fans','games','usdc','usdcExact','months','ticket','fx','wallet'];
+    function saveParams() {
+      try { const o = {}; persistKeys.forEach(k => o[k] = els[k].value); localStorage.setItem(STORE_KEY, JSON.stringify(o)); } catch (e) {}
+    }
+    function loadParams() {
+      try {
+        const o = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+        if (o) persistKeys.forEach(k => { if (o[k] !== undefined && o[k] !== '') els[k].value = o[k]; });
+      } catch (e) {}
+    }
+    const _calc = calculate;
+    calculate = function () { _calc(); saveParams(); };
+
+    [els.clubShare, els.fans, els.games, els.months, els.ticket, els.fx, els.wallet].forEach(el => el.addEventListener('input', calculate));
+    let resizeT;
+    window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (lastSimState) { drawChart(lastSimState.points); drawPoolChart(lastSimState.points, lastSimState.initUsdc); } }, 120); });
+    loadParams();
+    calculate();
+
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+
+    const offlineBadge = document.getElementById('offlineBadge');
+    function updateOnline() { offlineBadge.style.display = navigator.onLine ? 'none' : 'inline-block'; }
+    window.addEventListener('online', updateOnline);
+    window.addEventListener('offline', updateOnline);
+    updateOnline();
+
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    function dismissIosHint() { document.getElementById('iosHint').style.display = 'none'; try { localStorage.setItem('tokenFutebol.iosHint', '1'); } catch (e) {} }
+    try { if (isIos && !isStandalone && !localStorage.getItem('tokenFutebol.iosHint')) document.getElementById('iosHint').style.display = 'block'; } catch (e) {}
+
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'inline-block';
+    });
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      installBtn.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
+
